@@ -7,7 +7,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Личный штаб" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link id="pwaManifestLink" rel="manifest" href="" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <title>Личный штаб • LifeStats</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2511,17 +2515,25 @@
 
     function initPwaManifest() {
       try {
-        const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#0F172A"/><text x="96" y="116" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="74" font-weight="800" fill="#14B8A6">ЛШ</text></svg>`;
-        const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg);
+        // Абсолютные пути к иконкам — надёжнее для blob-манифеста на Android
+        const base = new URL('./', window.location.href).href;
+        const icon = (name) => new URL(name, base).href;
         const manifest = {
           name: 'Личный штаб • LifeStats',
           short_name: 'Личный штаб',
           description: 'Привычки, финансы, расписание пар и личный трекер задач',
-          start_url: './',
+          start_url: base,
+          scope: base,
           display: 'standalone',
+          orientation: 'any',
           background_color: '#070B14',
           theme_color: '#070B14',
-          icons: [{ src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' }]
+          lang: 'ru',
+          icons: [
+            { src: icon('icon-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: icon('icon-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: icon('icon-512-maskable.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          ]
         };
         const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
         const link = document.getElementById('pwaManifestLink');
@@ -2560,8 +2572,11 @@
       }
 
       const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+      const isAndroid = /android/i.test(window.navigator.userAgent);
       if (isIos) {
         showToast('В Safari нажмите «Поделиться» → «На экран „Домой“»');
+      } else if (isAndroid) {
+        showToast('В Chrome: меню ⋮ → «Установить приложение» или «Добавить на главный экран»');
       } else {
         showToast('Откройте меню браузера (⋮) и выберите «Установить приложение»');
       }
@@ -2589,6 +2604,18 @@
         saveState();
       }
       renderAll();
+
+      // Service Worker — офлайн-кэширование и поддержка установки на Android
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => {
+            reg.update().catch(() => {});
+            console.log('Service Worker зарегистрирован:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('Не удалось зарегистрировать Service Worker:', err);
+          });
+      }
     });
   </script>
 </body>
