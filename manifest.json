@@ -1,13 +1,13 @@
 {
-  "name": "Личный штаб",
-  "short_name": "Штаб",
-  "description": "Привычки, финансы, задачи, неделя и расписание — всё в одном месте",
+  "name": "Личный штаб • LifeStats",
+  "short_name": "Личный штаб",
+  "description": "Привычки, финансы, расписание пар и личный трекер задач",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#070B14",
+  "theme_color": "#070B14",
   "lang": "ru",
   "categories": ["productivity", "finance", "lifestyle"],
   "icons": [
@@ -32,15 +32,15 @@
   ],
   "shortcuts": [
     {
-      "name": "Неделя",
-      "short_name": "Неделя",
-      "url": "./index.html#week",
+      "name": "Привычки",
+      "short_name": "Привычки",
+      "url": "./index.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Финансы",
       "short_name": "Финансы",
-      "url": "./index.html#finance",
+      "url": "./index.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
