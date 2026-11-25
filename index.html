@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070B14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Личный штаб" />
+  <link id="pwaManifestLink" rel="manifest" href="" />
   <title>Личный штаб • LifeStats</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -272,14 +277,15 @@
     </div>
   </div>
 
-  <!-- ==================== МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ ПРИВЫЧКИ ==================== -->
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ ПРИВЫЧКИ ==================== -->
   <div id="habitModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4" onclick="handleBackdropClick(event, 'habitModal')">
     <div class="app-card rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl fade-in">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base sm:text-lg font-bold text-main">Новая привычка</h3>
+        <h3 id="habitModalTitle" class="text-base sm:text-lg font-bold text-main">Новая привычка</h3>
         <button onclick="closeModal('habitModal')" aria-label="Закрыть окно" class="text-muted hover:text-main min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl cursor-pointer">✕</button>
       </div>
-      <div class="space-y-4">
+      <form onsubmit="saveHabitFromModal(event)" class="space-y-4">
+        <input type="hidden" id="editHabitIdInput" />
         <div class="grid grid-cols-4 gap-3">
           <div>
             <label class="block text-xs text-muted mb-1">Иконка</label>
@@ -287,7 +293,7 @@
           </div>
           <div class="col-span-3">
             <label class="block text-xs text-muted mb-1">Название привычки</label>
-            <input id="quickHabitName" type="text" placeholder="Например: Учить английский 20 мин" class="w-full app-input app-input-sm rounded-xl px-3.5 py-2.5" />
+            <input id="quickHabitName" type="text" required placeholder="Например: Учить английский 20 мин" class="w-full app-input app-input-sm rounded-xl px-3.5 py-2.5" />
           </div>
         </div>
         <div>
@@ -295,10 +301,10 @@
           <input id="quickHabitGoal" type="number" min="1" max="31" value="31" class="w-full app-input app-input-sm rounded-xl px-3.5 py-2.5" />
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button onclick="closeModal('habitModal')" class="px-4 py-2.5 rounded-xl border border-slate-600/50 text-muted text-xs sm:text-sm font-semibold cursor-pointer min-h-[40px]">Отмена</button>
-          <button onclick="addHabitFromModal()" class="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs sm:text-sm cursor-pointer min-h-[40px]">Добавить</button>
+          <button type="button" onclick="closeModal('habitModal')" class="px-4 py-2.5 rounded-xl border border-slate-600/50 text-muted text-xs sm:text-sm font-semibold cursor-pointer min-h-[40px]">Отмена</button>
+          <button type="submit" id="habitModalSubmitBtn" class="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs sm:text-sm cursor-pointer min-h-[40px]">Добавить</button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 
@@ -399,6 +405,12 @@
 
       <!-- Правая панель: Тема + Фон + Личный кабинет -->
       <div class="flex items-center gap-1.5 sm:gap-2 order-2 lg:order-3 shrink-0">
+        <!-- Кнопка установки приложения (PWA) -->
+        <button onclick="handleInstallClick()" id="installAppBtn" aria-label="Установить приложение" title="Установить приложение на устройство" class="bg-teal-500 hover:bg-teal-400 text-slate-950 min-h-[40px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-teal-500/20">
+          <span>📲</span>
+          <span class="hidden sm:inline">Установить</span>
+        </button>
+
         <!-- Кнопка переключения темы -->
         <button onclick="toggleTheme()" id="themeToggleBtn" aria-label="Переключить тёмную или светлую тему" title="Переключить тёмную / светлую тему" class="app-subcard hover:border-teal-500/40 min-w-[40px] min-h-[40px] px-2.5 py-2 rounded-xl text-xs font-semibold text-main transition cursor-pointer flex items-center justify-center gap-1.5">
           <span id="themeIcon">🌙</span>
@@ -536,12 +548,23 @@
               <h2 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-main">Ежедневные привычки</h2>
               <span id="habitsCountBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full app-subcard text-muted">0 привычек</span>
             </div>
-            <button onclick="openHabitModal()" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer min-h-[40px]">
+            <button onclick="openAddHabitModal()" class="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer min-h-[40px]">
               + Добавить привычку
             </button>
           </div>
+
+          <!-- Быстрая строка добавления привычки прямо в разделе привычек -->
+          <form onsubmit="addHabitInline(event)" class="px-3.5 sm:px-4 py-2.5 border-b border-slate-700/30 bg-slate-900/20 grid grid-cols-12 gap-2 items-center">
+            <input id="inlineHabitEmoji" type="text" value="🔥" maxlength="2" aria-label="Иконка новой привычки" class="col-span-2 sm:col-span-1 text-center app-input rounded-xl px-2 py-2 text-sm" title="Иконка" />
+            <input id="inlineHabitName" type="text" required placeholder="Быстро добавить привычку... (напр. Пить 2 л воды)" class="col-span-10 sm:col-span-7 app-input rounded-xl px-3 py-2" />
+            <input id="inlineHabitGoal" type="number" min="1" max="31" value="31" aria-label="Цель дней в месяце" title="Цель дней в месяце" class="col-span-5 sm:col-span-2 text-center app-input rounded-xl px-2 py-2 font-semibold" />
+            <button type="submit" class="col-span-7 sm:col-span-2 bg-teal-500/15 hover:bg-teal-500 text-teal-400 hover:text-slate-950 border border-teal-500/40 font-bold py-2 px-3 rounded-xl text-xs transition cursor-pointer min-h-[38px]">
+              + В список
+            </button>
+          </form>
+
           <div class="overflow-x-auto scroll-strip">
-            <table class="w-full border-collapse text-left min-w-[1060px] sm:min-w-[1140px]">
+            <table class="w-full border-collapse text-left min-w-[1120px] sm:min-w-[1200px]">
               <thead id="habitTableHead" class="app-subcard text-[10px] uppercase tracking-wider text-muted border-b border-slate-700/30"></thead>
               <tbody id="habitTableBody" class="divide-y divide-slate-700/30 text-xs"></tbody>
             </table>
@@ -593,12 +616,41 @@
         </div>
 
         <div class="app-card rounded-xl p-4 border-l-4 border-l-amber-400 min-w-0">
-          <div class="flex items-center justify-between text-xs text-muted mb-1">
+          <div class="flex items-center justify-between gap-2 text-xs text-muted mb-1">
             <span class="font-semibold uppercase">🎯 Остаток лимита расходов</span>
-            <span class="text-amber-400 font-bold">Бюджет</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-amber-400 font-bold">Бюджет</span>
+              <button onclick="openBudgetLimitEditor()" title="Изменить лимит или остаток бюджета" class="px-2 py-0.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-[10px] cursor-pointer transition">
+                ✏️ Изменить
+              </button>
+            </div>
           </div>
           <div id="finBudgetLeftVal" class="text-xl sm:text-2xl font-extrabold text-main">0 сом</div>
           <div id="finBudgetStatus" class="text-[11px] text-muted mt-1">В рамках плана</div>
+          <div id="finBudgetLimitEditor" class="hidden mt-3 pt-2.5 border-t border-slate-700/40 space-y-2">
+            <div class="text-[11px] text-muted">Задайте желаемый <strong class="text-main">остаток лимита</strong> или <strong class="text-main">общий лимит расходов</strong>:</div>
+            <div class="grid grid-cols-1 gap-1.5">
+              <label class="text-[10px] text-muted flex flex-col gap-1">
+                <span>Желаемый остаток сейчас (сом)</span>
+                <input id="finDesiredLeftInput" type="number" step="100" class="app-input rounded-lg px-2.5 py-1.5 font-bold" />
+              </label>
+              <label class="text-[10px] text-muted flex flex-col gap-1">
+                <span>Либо общий лимит расходов на месяц (сом)</span>
+                <input id="finCustomTotalLimitInput" type="number" min="0" step="100" class="app-input rounded-lg px-2.5 py-1.5 font-bold" />
+              </label>
+            </div>
+            <div class="flex items-center gap-1.5 pt-1">
+              <button onclick="applyDesiredBudgetLeft()" class="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-1.5 px-2 rounded-lg text-[11px] cursor-pointer">
+                Сохранить остаток
+              </button>
+              <button onclick="applyCustomTotalBudgetLimit()" class="flex-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-1.5 px-2 rounded-lg text-[11px] cursor-pointer">
+                Задать лимит
+              </button>
+              <button onclick="resetBudgetLimitOverride()" title="Сбросить к сумме планов категорий" class="px-2 py-1.5 rounded-lg border border-slate-600/50 text-muted hover:text-main text-[11px] cursor-pointer">
+                ↺
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -942,6 +994,7 @@
       theme: 'dark',
       financeChartMode: 'weekly',
       taskFilter: 'all',
+      appInstalled: false,
       profiles: {}
     };
 
@@ -1013,7 +1066,9 @@
 
     function getCurrentProfile() {
       const p = appState.profiles[appState.activeProfileId];
-      if (!p.finance) p.finance = { categories: [], transactions: [] };
+      if (!p.habits) p.habits = [];
+      if (!p.checks) p.checks = {};
+      if (!p.finance) p.finance = { categories: [], transactions: [], budgetOverride: null };
       if (!p.schedule) p.schedule = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] };
       if (!p.tasks) p.tasks = [];
       if (!p.background) p.background = { type: 'preset', value: 'default', dim: 45 };
@@ -1345,12 +1400,34 @@
       }).join('');
     }
 
-    function openHabitModal() {
+    function openAddHabitModal() {
+      document.getElementById('habitModalTitle').textContent = 'Новая привычка';
+      document.getElementById('habitModalSubmitBtn').textContent = 'Добавить';
+      document.getElementById('editHabitIdInput').value = '';
+      document.getElementById('quickHabitEmoji').value = '⚡';
+      document.getElementById('quickHabitName').value = '';
+      document.getElementById('quickHabitGoal').value = getCurrentMonthObj().days;
       openModal('habitModal');
-      document.getElementById('quickHabitName').focus();
+      setTimeout(() => document.getElementById('quickHabitName').focus(), 50);
     }
 
-    function addHabitFromModal() {
+    function openEditHabitModal(habitId) {
+      const profile = getCurrentProfile();
+      const h = profile.habits.find(x => x.id === habitId);
+      if (!h) return;
+      document.getElementById('habitModalTitle').textContent = 'Редактировать привычку';
+      document.getElementById('habitModalSubmitBtn').textContent = 'Сохранить';
+      document.getElementById('editHabitIdInput').value = h.id;
+      document.getElementById('quickHabitEmoji').value = h.emoji || '⚡';
+      document.getElementById('quickHabitName').value = h.name || '';
+      document.getElementById('quickHabitGoal').value = h.goal || 31;
+      openModal('habitModal');
+      setTimeout(() => document.getElementById('quickHabitName').focus(), 50);
+    }
+
+    function saveHabitFromModal(e) {
+      if (e) e.preventDefault();
+      const editId = document.getElementById('editHabitIdInput').value;
       const emoji = document.getElementById('quickHabitEmoji').value.trim() || '⚡';
       const name = document.getElementById('quickHabitName').value.trim();
       const goal = Math.min(31, Math.max(1, parseInt(document.getElementById('quickHabitGoal').value, 10) || 31));
@@ -1358,13 +1435,62 @@
         showToast('Введите название привычки');
         return;
       }
+
       const profile = getCurrentProfile();
-      profile.habits.push({ id: 'h_' + Date.now(), emoji, name, goal });
+      if (editId) {
+        const habit = profile.habits.find(h => h.id === editId);
+        if (habit) {
+          habit.emoji = emoji;
+          habit.name = name;
+          habit.goal = goal;
+        }
+        showToast(`Привычка «${name}» обновлена`);
+      } else {
+        profile.habits.push({ id: 'h_' + Date.now(), emoji, name, goal });
+        showToast(`Привычка «${name}» добавлена`);
+      }
+
       saveState();
-      document.getElementById('quickHabitName').value = '';
       closeModal('habitModal');
       renderHabitsDashboard();
+    }
+
+    function addHabitInline(e) {
+      e.preventDefault();
+      const emojiInput = document.getElementById('inlineHabitEmoji');
+      const nameInput = document.getElementById('inlineHabitName');
+      const goalInput = document.getElementById('inlineHabitGoal');
+
+      const emoji = emojiInput.value.trim() || '🔥';
+      const name = nameInput.value.trim();
+      const goal = Math.min(31, Math.max(1, parseInt(goalInput.value, 10) || 31));
+      if (!name) return;
+
+      const profile = getCurrentProfile();
+      profile.habits.push({ id: 'h_' + Date.now(), emoji, name, goal });
+      nameInput.value = '';
+      saveState();
+      renderHabitsDashboard();
       showToast(`Привычка «${name}» добавлена`);
+    }
+
+    function deleteHabit(id) {
+      const profile = getCurrentProfile();
+      const target = profile.habits.find(h => h.id === id);
+      profile.habits = profile.habits.filter(h => h.id !== id);
+      if (profile.checks) {
+        Object.keys(profile.checks).forEach(mId => {
+          if (profile.checks[mId] && profile.checks[mId][id]) {
+            delete profile.checks[mId][id];
+          }
+        });
+      }
+      saveState();
+      renderHabitsDashboard();
+      if (!document.getElementById('view-settings').classList.contains('hidden')) {
+        renderSettings();
+      }
+      showToast(target ? `Привычка «${target.name}» удалена` : 'Привычка удалена');
     }
 
     function toggleCheck(habitId, day) {
@@ -1527,7 +1653,7 @@
       // Таблица привычек
       document.getElementById('habitsCountBadge').textContent = `${stats.habitStats.length} привычек`;
       const daysCount = stats.month.days;
-      let weekHead = `<th rowspan="2" class="sticky left-0 z-20 sticky-col px-3 py-2 text-left font-bold text-main min-w-[165px] sm:min-w-[195px] border-r border-slate-700/30">Привычка</th>
+      let weekHead = `<th rowspan="2" class="sticky left-0 z-20 sticky-col px-3 py-2 text-left font-bold text-main min-w-[195px] sm:min-w-[230px] border-r border-slate-700/30">Привычка</th>
                       <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted w-12 border-r border-slate-700/30">Цель</th>`;
       activeWeeks.forEach(w => {
         const c = WEEK_COLORS[w.wIdx].hex;
@@ -1537,7 +1663,8 @@
                    <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted">Ост.</th>
                    <th rowspan="2" class="px-3 py-2 text-left font-bold text-muted min-w-[115px]">Прогресс</th>
                    <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted">Серия</th>
-                   <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted">Рекорд</th>`;
+                   <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted">Рекорд</th>
+                   <th rowspan="2" class="px-2 py-2 text-center font-bold text-muted">Действия</th>`;
 
       let dayHead = '';
       for (let d = 1; d <= daysCount; d++) {
@@ -1549,55 +1676,78 @@
       }
       document.getElementById('habitTableHead').innerHTML = `<tr class="border-b border-slate-700/30">${weekHead}</tr><tr>${dayHead}</tr>`;
 
-      document.getElementById('habitTableBody').innerHTML = stats.habitStats.map(h => {
-        let boxes = '';
-        for (let d = 1; d <= daysCount; d++) {
-          const checked = Boolean(h.checks[d]);
-          const c = WEEK_COLORS[getWeekIndexForDay(d)].hex;
-          boxes += `<td class="p-0.5 text-center ${d % 7 === 0 ? 'border-r border-slate-700/30' : ''}">
-            <button onclick="toggleCheck('${h.id}', ${d})" aria-label="${escapeHtml(h.name)}, день ${d}" class="habit-box w-6 h-6 sm:w-5 sm:h-5 rounded-[6px] sm:rounded-[5px] mx-auto flex items-center justify-center cursor-pointer border"
-              style="background-color:${checked ? c : 'transparent'}; border-color:${checked ? c : 'rgba(148,163,184,0.35)'};">
-              ${checked ? `<svg class="w-3.5 h-3.5 sm:w-3 sm:h-3 text-slate-950 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}
-            </button>
-          </td>`;
-        }
-        return `<tr class="hover:bg-slate-700/20 transition">
-          <td class="sticky left-0 z-10 sticky-col px-3 py-2 font-semibold text-main border-r border-slate-700/30">
-            <div class="flex items-center gap-2 truncate max-w-[155px] sm:max-w-[185px]"><span>${escapeHtml(h.emoji)}</span><span class="truncate">${escapeHtml(h.name)}</span></div>
-          </td>
-          <td class="px-2 py-2 text-center font-semibold text-muted border-r border-slate-700/30">${h.goal}</td>
-          ${boxes}
-          <td class="px-2 py-2 text-center font-bold text-main border-l border-slate-700/30">${h.done}</td>
-          <td class="px-2 py-2 text-center text-muted">${h.left}</td>
-          <td class="px-3 py-2">
-            <div class="flex items-center gap-2">
-              <div class="flex-1 h-2 bg-slate-700/40 rounded-full overflow-hidden">
-                <div class="h-full rounded-full bg-teal-400" style="width:${h.pct}%"></div>
+      if (stats.habitStats.length === 0) {
+        document.getElementById('habitTableBody').innerHTML = `
+          <tr>
+            <td colspan="${daysCount + 8}" class="py-10 text-center text-xs text-muted">
+              Список привычек пуст. Добавьте первую привычку через форму выше или кнопку «+ Добавить привычку».
+            </td>
+          </tr>
+        `;
+      } else {
+        document.getElementById('habitTableBody').innerHTML = stats.habitStats.map(h => {
+          let boxes = '';
+          for (let d = 1; d <= daysCount; d++) {
+            const checked = Boolean(h.checks[d]);
+            const c = WEEK_COLORS[getWeekIndexForDay(d)].hex;
+            boxes += `<td class="p-0.5 text-center ${d % 7 === 0 ? 'border-r border-slate-700/30' : ''}">
+              <button onclick="toggleCheck('${h.id}', ${d})" aria-label="${escapeHtml(h.name)}, день ${d}" class="habit-box w-6 h-6 sm:w-5 sm:h-5 rounded-[6px] sm:rounded-[5px] mx-auto flex items-center justify-center cursor-pointer border"
+                style="background-color:${checked ? c : 'transparent'}; border-color:${checked ? c : 'rgba(148,163,184,0.35)'};">
+                ${checked ? `<svg class="w-3.5 h-3.5 sm:w-3 sm:h-3 text-slate-950 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}
+              </button>
+            </td>`;
+          }
+          return `<tr class="hover:bg-slate-700/20 transition group">
+            <td class="sticky left-0 z-10 sticky-col px-3 py-2 font-semibold text-main border-r border-slate-700/30">
+              <div class="flex items-center justify-between gap-1.5 min-w-0">
+                <button onclick="openEditHabitModal('${h.id}')" class="flex items-center gap-2 truncate text-left hover:text-teal-400 transition cursor-pointer min-w-0" title="Нажмите, чтобы изменить привычку">
+                  <span>${escapeHtml(h.emoji)}</span>
+                  <span class="truncate">${escapeHtml(h.name)}</span>
+                </button>
               </div>
-              <span class="text-[11px] font-bold text-main w-8 text-right">${h.pct}%</span>
-            </div>
-          </td>
-          <td class="px-2 py-2 text-center font-bold text-amber-400">${h.currentStreak}</td>
-          <td class="px-2 py-2 text-center font-bold text-teal-400">${h.bestStreak}</td>
-        </tr>`;
-      }).join('');
+            </td>
+            <td class="px-2 py-2 text-center font-semibold text-muted border-r border-slate-700/30">${h.goal}</td>
+            ${boxes}
+            <td class="px-2 py-2 text-center font-bold text-main border-l border-slate-700/30">${h.done}</td>
+            <td class="px-2 py-2 text-center text-muted">${h.left}</td>
+            <td class="px-3 py-2">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 bg-slate-700/40 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full bg-teal-400" style="width:${h.pct}%"></div>
+                </div>
+                <span class="text-[11px] font-bold text-main w-8 text-right">${h.pct}%</span>
+              </div>
+            </td>
+            <td class="px-2 py-2 text-center font-bold text-amber-400">${h.currentStreak}</td>
+            <td class="px-2 py-2 text-center font-bold text-teal-400">${h.bestStreak}</td>
+            <td class="px-2 py-2 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="openEditHabitModal('${h.id}')" aria-label="Изменить привычку ${escapeHtml(h.name)}" class="min-w-[30px] min-h-[30px] inline-flex items-center justify-center text-sky-400 hover:bg-sky-500/15 rounded-lg cursor-pointer" title="Изменить привычку">✏️</button>
+                <button onclick="deleteHabit('${h.id}')" aria-label="Удалить привычку ${escapeHtml(h.name)}" class="min-w-[30px] min-h-[30px] inline-flex items-center justify-center text-rose-400 hover:bg-rose-500/15 rounded-lg cursor-pointer" title="Удалить привычку">🗑</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+      }
 
       // ТОП привычек
       const sorted = [...stats.habitStats].sort((a, b) => b.pct - a.pct || b.done - a.done);
-      document.getElementById('topHabitsList').innerHTML = sorted.map((h, i) => `
-        <div class="app-subcard rounded-xl p-2.5 flex items-center gap-2.5">
-          <span class="w-6 h-6 rounded-lg app-card text-[11px] font-extrabold flex items-center justify-center text-teal-400 shrink-0">${i + 1}</span>
-          <div class="flex-1 min-w-0">
-            <div class="flex justify-between text-xs font-semibold text-main mb-1">
-              <span class="truncate">${escapeHtml(h.emoji)} ${escapeHtml(h.name)}</span>
-              <span class="font-extrabold ml-1">${h.pct}%</span>
-            </div>
-            <div class="w-full h-1.5 bg-slate-700/40 rounded-full overflow-hidden">
-              <div class="h-full bg-teal-400 rounded-full" style="width:${h.pct}%"></div>
+      document.getElementById('topHabitsList').innerHTML = sorted.length === 0
+        ? `<div class="text-xs text-muted text-center py-6">Добавьте привычки для отображения рейтинга</div>`
+        : sorted.map((h, i) => `
+          <div class="app-subcard rounded-xl p-2.5 flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-lg app-card text-[11px] font-extrabold flex items-center justify-center text-teal-400 shrink-0">${i + 1}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between text-xs font-semibold text-main mb-1">
+                <span class="truncate">${escapeHtml(h.emoji)} ${escapeHtml(h.name)}</span>
+                <span class="font-extrabold ml-1">${h.pct}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-slate-700/40 rounded-full overflow-hidden">
+                <div class="h-full bg-teal-400 rounded-full" style="width:${h.pct}%"></div>
+              </div>
             </div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
     }
 
     // ==================== МОДУЛЬ 2: ФИНАНСЫ ====================
@@ -1712,6 +1862,87 @@
       showToast('Операция удалена');
     }
 
+    function openBudgetLimitEditor() {
+      const profile = getCurrentProfile();
+      const box = document.getElementById('finBudgetLimitEditor');
+      box.classList.toggle('hidden');
+      if (box.classList.contains('hidden')) return;
+
+      const categories = profile.finance.categories || [];
+      const transactions = profile.finance.transactions || [];
+      const factByCat = {};
+      categories.forEach(c => factByCat[c.id] = 0);
+      transactions.forEach(tx => {
+        if (factByCat[tx.categoryId] !== undefined) {
+          factByCat[tx.categoryId] += Number(tx.amount) || 0;
+        }
+      });
+
+      let planExpense = 0, factExpense = 0;
+      categories.forEach(c => {
+        if (c.type !== 'income') {
+          planExpense += Number(c.plan) || 0;
+          factExpense += factByCat[c.id] || 0;
+        }
+      });
+
+      const effectiveLimit = typeof profile.finance.budgetOverride === 'number'
+        ? profile.finance.budgetOverride
+        : planExpense;
+      const currentLeft = effectiveLimit - factExpense;
+
+      document.getElementById('finDesiredLeftInput').value = Math.round(currentLeft);
+      document.getElementById('finCustomTotalLimitInput').value = Math.round(effectiveLimit);
+    }
+
+    function applyDesiredBudgetLeft() {
+      const profile = getCurrentProfile();
+      const desiredLeft = Number(document.getElementById('finDesiredLeftInput').value);
+      if (Number.isNaN(desiredLeft)) return;
+
+      const categories = profile.finance.categories || [];
+      const transactions = profile.finance.transactions || [];
+      const factByCat = {};
+      categories.forEach(c => factByCat[c.id] = 0);
+      transactions.forEach(tx => {
+        if (factByCat[tx.categoryId] !== undefined) {
+          factByCat[tx.categoryId] += Number(tx.amount) || 0;
+        }
+      });
+
+      let factExpense = 0;
+      categories.forEach(c => {
+        if (c.type !== 'income') factExpense += factByCat[c.id] || 0;
+      });
+
+      profile.finance.budgetOverride = Math.max(0, factExpense + desiredLeft);
+      saveState();
+      document.getElementById('finBudgetLimitEditor').classList.add('hidden');
+      renderFinanceDashboard();
+      showToast('Остаток лимита расходов обновлён');
+    }
+
+    function applyCustomTotalBudgetLimit() {
+      const profile = getCurrentProfile();
+      const customLimit = Number(document.getElementById('finCustomTotalLimitInput').value);
+      if (Number.isNaN(customLimit) || customLimit < 0) return;
+
+      profile.finance.budgetOverride = customLimit;
+      saveState();
+      document.getElementById('finBudgetLimitEditor').classList.add('hidden');
+      renderFinanceDashboard();
+      showToast('Общий лимит расходов изменён');
+    }
+
+    function resetBudgetLimitOverride() {
+      const profile = getCurrentProfile();
+      profile.finance.budgetOverride = null;
+      saveState();
+      document.getElementById('finBudgetLimitEditor').classList.add('hidden');
+      renderFinanceDashboard();
+      showToast('Лимит сброшен к сумме планов категорий');
+    }
+
     function renderFinanceDashboard() {
       const profile = getCurrentProfile();
       const categories = profile.finance.categories || [];
@@ -1750,7 +1981,10 @@
       });
 
       const balance = factIncome - factExpense;
-      const budgetLeft = planExpense - factExpense;
+      const effectiveExpenseLimit = typeof profile.finance.budgetOverride === 'number'
+        ? profile.finance.budgetOverride
+        : planExpense;
+      const budgetLeft = effectiveExpenseLimit - factExpense;
       const savingsRate = factIncome > 0 ? Math.round(((factIncome - factExpense) / factIncome) * 100) : 0;
 
       document.getElementById('finBalanceVal').textContent = formatMoney(balance);
@@ -1764,7 +1998,10 @@
       document.getElementById('finExpensePctBadge').textContent = `${planExpense > 0 ? Math.round((factExpense / planExpense) * 100) : 0}%`;
 
       document.getElementById('finBudgetLeftVal').textContent = formatMoney(budgetLeft);
-      document.getElementById('finBudgetStatus').textContent = budgetLeft >= 0 ? 'В пределах плана' : '⚠️ Превышение плана!';
+      const overrideNote = typeof profile.finance.budgetOverride === 'number'
+        ? ` • Лимит: ${formatMoney(effectiveExpenseLimit)}`
+        : '';
+      document.getElementById('finBudgetStatus').textContent = (budgetLeft >= 0 ? 'В пределах плана' : '⚠️ Превышение плана!') + overrideNote;
       document.getElementById('finBudgetStatus').className = `text-[11px] mt-1 font-semibold ${budgetLeft >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
 
       renderFinanceFlowChart(categories, transactions);
@@ -2210,14 +2447,6 @@
       }
     }
 
-    function deleteHabit(id) {
-      const profile = getCurrentProfile();
-      profile.habits = profile.habits.filter(h => h.id !== id);
-      saveState();
-      renderSettings();
-      showToast('Привычка удалена');
-    }
-
     function resetDemoData() {
       const profile = getCurrentProfile();
       const fresh = createFullDemoProfile(profile.id, profile.name, profile.role, profile.color);
@@ -2267,14 +2496,100 @@
     function renderAll() {
       applyTheme();
       renderHeaderProfile();
+      updateInstallButtonVisibility();
       switchTab(appState.activeTab || 'habits');
     }
 
+    let deferredInstallPrompt = null;
+
+    function isAppAlreadyInstalled() {
+      const standaloneDisplay = window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.navigator.standalone === true;
+      return Boolean(appState.appInstalled || standaloneDisplay);
+    }
+
+    function initPwaManifest() {
+      try {
+        const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#0F172A"/><text x="96" y="116" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="74" font-weight="800" fill="#14B8A6">ЛШ</text></svg>`;
+        const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg);
+        const manifest = {
+          name: 'Личный штаб • LifeStats',
+          short_name: 'Личный штаб',
+          description: 'Привычки, финансы, расписание пар и личный трекер задач',
+          start_url: './',
+          display: 'standalone',
+          background_color: '#070B14',
+          theme_color: '#070B14',
+          icons: [{ src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' }]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const link = document.getElementById('pwaManifestLink');
+        if (link) link.href = URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn('Не удалось инициализировать manifest:', e);
+      }
+    }
+
+    function updateInstallButtonVisibility() {
+      const btn = document.getElementById('installAppBtn');
+      if (!btn) return;
+      if (isAppAlreadyInstalled()) {
+        btn.classList.add('hidden');
+        btn.style.display = 'none';
+      } else {
+        btn.classList.remove('hidden');
+        btn.style.display = '';
+      }
+    }
+
+    async function handleInstallClick() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        if (choice && choice.outcome === 'accepted') {
+          appState.appInstalled = true;
+          saveState();
+          updateInstallButtonVisibility();
+          showToast('Приложение устанавливается...');
+        } else {
+          showToast('Установку можно запустить в любое время');
+        }
+        return;
+      }
+
+      const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+      if (isIos) {
+        showToast('В Safari нажмите «Поделиться» → «На экран „Домой“»');
+      } else {
+        showToast('Откройте меню браузера (⋮) и выберите «Установить приложение»');
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      updateInstallButtonVisibility();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      appState.appInstalled = true;
+      saveState();
+      updateInstallButtonVisibility();
+      showToast('«Личный штаб» установлен!');
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
+      initPwaManifest();
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        appState.appInstalled = true;
+        saveState();
+      }
       renderAll();
     });
   </script>
 </body>
 </html>
-//Обновлён интерфейс и адаптация под телефон
